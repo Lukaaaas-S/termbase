@@ -10,7 +10,7 @@ jobs:
         with:
           node-version: 20
       - run: npm ci --ignore-scripts
-      - run: npx prisma generate
+      - run: npx prisma generate --schema=prisma/schema.prisma
       - name: Run CSV importer
         run: node scripts/import-termbase.mjs
         env:

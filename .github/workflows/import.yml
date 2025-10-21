@@ -1,18 +1,32 @@
 name: Import CSV
+
 on:
-  workflow_dispatch: {}
+  push:
+    paths:
+      - 'data/termbase_import_full_UTF-8.csv'   # CSV 变更自动导入
+  workflow_dispatch:
+    inputs:
+      reset:
+        description: 'DROP+RESET schema before import'
+        type: boolean
+        default: false
+
 jobs:
   import:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - run: npm ci --ignore-scripts
       - run: npx prisma generate --schema=prisma/schema.prisma
 
-      - name: Reset DB (drop all objects in schema)
+      # 仅在手动触发且勾选 reset 时执行 reset（push 事件不会误触发）
+      - name: Reset DB (optional)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.reset == 'true' }}
         run: npx prisma migrate reset --force --skip-generate --schema=prisma/schema.prisma
         env:
           DATABASE_URL: ${{ secrets.DIRECT_URL }}
@@ -23,6 +37,12 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DIRECT_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
+
+      # 先去掉 CSV 里的 BOM，再检查头三行，确保首行已无 \uFEFF
+      - name: Strip BOM in CSV (safety)
+        run: |
+          perl -i -pe 'BEGIN{binmode(STDIN);binmode(STDOUT)} s/^\xEF\xBB\xBF// if $.==1' data/termbase_import_full_UTF-8.csv
+          head -n 1 data/termbase_import_full_UTF-8.csv
 
       - name: Inspect CSV on runner
         run: |
@@ -36,4 +56,4 @@ jobs:
           DATABASE_URL: ${{ secrets.DIRECT_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
           CSV_PATH: data/termbase_import_full_UTF-8.csv
-          ORG_NAME: "QYSEA"
+          ORG_NAME: QYSEA

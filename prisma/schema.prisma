@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled host（带 -pooler）
+  directUrl = env("DIRECT_URL") // direct host（不带 -pooler）
+}
+
+enum TermStatus {
+  draft
+  approved
+}
+
+model Org {
+  id         String     @id @default(cuid())
+  name       String
+  createdAt  DateTime   @default(now())
+  glossaries Glossary[]
+}
+
+model Glossary {
+  id          String   @id @default(cuid())
+  orgId       String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  org   Org    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  terms Term[]
+
+  @@index([orgId])
+}
+
+model Term {
+  id         String   @id @default(cuid())
+  glossaryId String
+  key        String
+  definition String?
+  tags       String[] @default([])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  glossary Glossary     @relation(fields: [glossaryId], references: [id], onDelete: Cascade)
+  locales  TermLocale[]
+
+  @@unique([glossaryId, key]) // 一个词库中 key 唯一
+  @@index([glossaryId])
+}
+
+model TermLocale {
+  id        String     @id @default(cuid())
+  termId    String
+  language  String // ISO-639-1: 'en','zh','ja'...
+  text      String
+  note      String?
+  status    TermStatus @default(draft)
+  updatedAt DateTime   @updatedAt
+
+  term Term @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  @@unique([termId, language]) // 每个术语每种语言一条
+  @@index([termId])
+}

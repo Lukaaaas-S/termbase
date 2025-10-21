@@ -1,4 +1,4 @@
-﻿-- CreateEnum
+-- CreateEnum
 CREATE TYPE "TermStatus" AS ENUM ('draft', 'approved');
 
 -- CreateTable

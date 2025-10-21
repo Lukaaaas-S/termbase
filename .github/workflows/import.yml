@@ -24,6 +24,12 @@ jobs:
           DATABASE_URL: ${{ secrets.DIRECT_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
 
+      - name: Inspect CSV on runner
+        run: |
+          ls -l data || true
+          wc -l data/termbase_import_full_UTF-8.csv || true
+          head -n 3 data/termbase_import_full_UTF-8.csv || true
+
       - name: Run CSV importer
         run: node scripts/import-termbase.mjs
         env:
